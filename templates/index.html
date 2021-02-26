@@ -1,0 +1,200 @@
+<!Doctype html>
+<html lang="ko">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <!-- Google Font-->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <title>seongbinDB shop</title>
+    <meta property="og:title" content="원페이지 쇼핑몰" />
+    <meta property="og:description" content="사과를 팝니다." />
+    <meta property="og:image" content="{{ url_for('static', filename='ogimage.png') }}" />
+    <style>
+        .page-container {
+            font-family: 'Jua', sans-serif;
+            width: 500px;
+            margin: 20px auto;
+        }
+
+        .product-img {
+            width: 500px;
+            height: 500px;
+            background-image: url('https://littledeep.com/wp-content/uploads/2019/04/littledeep_illustration_apple_style1.png');
+            background-position: center;
+            background-size: cover;
+        }
+
+        .price {
+            font-size: 20px;
+        }
+
+        .btn-order {
+            margin: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<main class="page-container">
+    <article id="product">
+        <div class="product-img"></div>
+        <section id="product-info">
+            <h1>사과 팝니다 <span class="price">가격: 3,000원/개</span></h1>
+            <p>사과팝니다. 유기농으로 재배한 문경사과 특상품이에요! 몸에 좋고 맛도 좋습니다 <br/>(여러 사람들이 구매 할 수 있도록 수량을 5개로 한정합니다)</p>
+            <p style="color: blue">달러-원 환율: <span id="current-currency-rates"></span></p>
+        </section>
+        <section id="customer-info">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">주문자 이름</span>
+                </div>
+                <input type="text" class="form-control" id="name">
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">수량</span>
+                </div>
+                <select class="custom-select" id="count">
+                    <option value="" selected>-- 수량을 선택하세요 --</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">주소</span>
+                </div>
+                <input type="text" class="form-control" id="address">
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">전화번호</span>
+                </div>
+                <input type="text" class="form-control" id="phone-number">
+            </div>
+            <button class="btn-order btn btn-primary" onclick="saveOrder()">주문하기</button>
+        </section>
+    </article>
+    <article>
+        <br/>
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">이름</th>
+                <th scope="col">수량</th>
+                <th scope="col">주소</th>
+                <th scope="col">전화번호</th>
+            </tr>
+            </thead>
+            <tbody id ="order-info">
+            </tbody>
+        </table>
+    </article>
+</main>
+</body>
+<script>
+    'use strict';
+    $(document).ready(function () {
+        $.ajax({
+            type: "GET",
+            url: "https://api.manana.kr/exchange/rate.json",
+            error: function () {
+                $("#current-currency-rates").text("환율 정보를 가져오지 못하였습니다.")
+            },
+            success: function (response) {
+                $("#current-currency-rates").text(response[1].rate);
+            }
+        })
+
+        order_listing();
+
+    })
+
+    function order_listing() {
+        // 주문목록 보기 API 연결
+        $.ajax({
+            type: "GET",
+            url: "/order",
+            data: {},
+            success: function (response) {
+                let orders = response['all_orders'];
+                if(orders.length === 0) {
+                    $("#order-info").append('<tr><td colspan="4" style="text-align: center">주문내역이 존재하지 않습니다.</td></tr>');
+                }
+
+                for(let i=0; i<orders.length; i++) {
+                    let name =orders[i]['name'];
+                    let count = orders[i]['count'];
+                    let address = orders[i]['address'];
+                    let phone_number = orders[i]['phone_number'];
+
+                    let row = `<tr>
+                                  <td>${name}</td>
+                                  <td>${count}</td>
+                                  <td>${address}</td>
+                                  <td>${phone_number}</td>
+                                </tr>`
+                    $("#order-info").append(row);
+                }
+            }
+        })
+    }
+
+    function saveOrder() {
+        if ($("#name").val() == "") {
+            alert("이름을 입력하세요");
+            return false;
+        }
+        if ($("#count").val() == "") {
+            alert("수량을 입력하세요");
+            return false;
+        }
+        if ($("#address").val() == "") {
+            alert("주소를 입력하세요");
+            return false;
+        }
+        if ($("#phone-number").val() == "") {
+            alert("휴대폰번호를 입력하세요");
+            return false;
+        }
+
+        let order_name = $("#name").val();
+        let order_count = $("#count").val();
+        let order_address = $("#address").val();
+        let order_phone_number = $("#phone-number").val();
+
+        // 주문하기 API 연결
+        $.ajax({
+            type: "POST",
+            url: "/order",
+            data: {
+                order_name: order_name,
+                order_count: order_count,
+                order_phone_number: order_phone_number,
+                order_address: order_address
+            },
+            success: function (response) { // 성공하면
+                alert(response["msg"]);
+                window.location.reload();
+            }
+        })
+    }
+</script>
+</html>
